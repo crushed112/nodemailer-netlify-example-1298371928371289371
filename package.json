@@ -1,6 +1,13 @@
 {
 	"dependencies": {
-		"nodemailer": "^6.9.8"
+		"@netlify/functions": "^2.5.1",
+		"@types/nodemailer": "^6.4.14",
+		"nodemailer": "^6.9.8",
+		"terser": "^5.27.0"
 	},
-	"type":"module"
+	"type": "module",
+	"scripts": {
+		"build": "tsc && npm run minify",
+		"minify": "for file in ./netlify/functions/*.js; do terser $file -o $file; done"
+	  }
 }
