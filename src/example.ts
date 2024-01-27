@@ -70,7 +70,6 @@ const sendEmail = async (
   } satisfies SendMailOptions;
 
   try {
-    console.log("sending email")
     await transporter.sendMail(mailOptions);
     return isJson
       ? {
@@ -142,7 +141,6 @@ const handler: Handler = async (event) => {
     !payload.subject.trim() ||
     !payload.message.trim()
   ) {
-    console.log("all required fields exist")
     return isJson
       ? {
           statusCode: 400,
@@ -158,7 +156,6 @@ const handler: Handler = async (event) => {
 
   // Validate the email
   if (!isEmail(payload.email)) {
-    console.log("valid email")
     return isJson
       ? {
           statusCode: 400,
