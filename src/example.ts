@@ -1,8 +1,7 @@
 import type { Handler } from "@netlify/functions";
 import isEmail from "validator/es/lib/isEmail";
-import * as nodemailer from "nodemailer";
-import type { SendMailOptions } from "nodemailer";
 import type { Options as SMTPTransportOptions } from "nodemailer/lib/smtp-transport";
+import { parseRequestBody, sendEmail, validatePayload } from "./utils";
 
 // Define Environment Variables Type
 type Env = {
@@ -13,12 +12,6 @@ type Env = {
   EMAIL: string;
   PASS: string;
   ALLOWED_ORIGINS: string;
-};
-
-type RequestPayload = {
-  email?: string;
-  subject?: string;
-  message?: string;
 };
 
 const env: Env = process.env as any;
@@ -41,65 +34,9 @@ const emailConfig = {
 
 const allowedOrigins = env.ALLOWED_ORIGINS.split(",").filter(Boolean); // Remove any empty strings
 
-const parseRequestBody = (body: string | null): RequestPayload => {
-  if (!body) return {};
-  try {
-    return JSON.parse(body);
-  } catch {
-    const params = new URLSearchParams(body);
-    return {
-      email: params.get("email") || undefined,
-      subject: params.get("subject") || undefined,
-      message: params.get("message") || undefined,
-    };
-  }
-};
-
-const sendEmail = async (
-  payload: RequestPayload,
-  origin: string,
-  isJson: boolean,
-  headers: Record<string, string>
-) => {
-  const transporter = nodemailer.createTransport(emailConfig);
-  const mailOptions = {
-    from: env.EMAIL,
-    to: payload.email,
-    subject: payload.subject,
-    html: `<p>${payload.message}</p>`,
-  } satisfies SendMailOptions;
-
-  try {
-    await transporter.sendMail(mailOptions);
-    return isJson
-      ? {
-          statusCode: 200,
-          headers,
-          body: JSON.stringify({ message: "Email sent successfully" }),
-        }
-      : {
-          statusCode: 303,
-          headers: { ...headers, Location: `${origin}/#success` },
-          body: "",
-        };
-  } catch (error) {
-    console.error("Error sending email: ", error);
-    return isJson
-      ? {
-          statusCode: 500,
-          headers,
-          body: JSON.stringify({ error: "Failed to send email" }),
-        }
-      : {
-          statusCode: 303,
-          headers: { ...headers, Location: `${origin}/#error` },
-          body: "",
-        };
-  }
-};
-
-const handler: Handler = async (event) => {
+export const handler: Handler = async (event) => {
   const origin = event.headers.origin;
+  const isJson = event.headers["content-type"] === "application/json";
   let headers = {
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
@@ -117,35 +54,33 @@ const handler: Handler = async (event) => {
   }
 
   if (!allowedOrigins.includes(origin)) {
+    const message = "Access denied. Origin not allowed.";
     return {
       statusCode: 403,
       headers,
-      body: "Access denied. Origin not allowed.",
+      body: isJson ? JSON.stringify({ error: message }) : "",
     };
   }
 
   if (event.httpMethod !== "POST") {
+    const message = "Method Not Allowed";
     return {
       statusCode: 405,
       headers,
-      body: "Method Not Allowed",
+      body: isJson ? JSON.stringify({ error: message }) : "",
     };
   }
 
   const payload = parseRequestBody(event.body);
-  const isJson = event.headers["content-type"] === "application/json";
 
   // Validate all fields exist
-  if (
-    !payload.email.trim() ||
-    !payload.subject.trim() ||
-    !payload.message.trim()
-  ) {
+  if (!validatePayload(payload)) {
+    const errorMessage = "Missing or invalid fields";
     return isJson
       ? {
           statusCode: 400,
           headers,
-          body: JSON.stringify({ error: "Missing email, subject, or message" }),
+          body: JSON.stringify({ error: errorMessage }),
         }
       : {
           statusCode: 303,
@@ -169,7 +104,5 @@ const handler: Handler = async (event) => {
         };
   }
 
-  return sendEmail(payload, origin, isJson, headers);
+  return sendEmail(payload, origin, isJson, headers, emailConfig);
 };
-
-export { handler };
