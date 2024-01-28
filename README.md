@@ -31,3 +31,6 @@ The TS version can be used by setting the netlify build command to `pnpm run bui
 6. Add Environmental Variables
 7. Deploy and view logs at Logs in Left Sidear then Functions then Select example
 8. Set form action / fetch `https://domain.netlify.app/.netlify/functions/example`
+
+> ![NOTE] 
+> If you end up using the deploy to netlify button, you can delete the `deploytonetlifybutton` directory after the first build
