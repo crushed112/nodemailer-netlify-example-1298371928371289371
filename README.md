@@ -33,4 +33,4 @@ The TS version can be used by setting the netlify build command to `pnpm run bui
 8. Set form action / fetch `https://domain.netlify.app/.netlify/functions/example`
 
 > ![NOTE] 
-> If you end up using the deploy to netlify button, you can delete the `deploytonetlifybutton` directory after the first build
+> You can delete the index.html file
