@@ -11,18 +11,18 @@ export type ValidationRule = {
 export const validationRules: ValidationRule[] = [
   {
     field: "email",
-    validator: (value) => !!value && value.trim().length > 0,
-    errorMessage: "Email cannot be empty",
+    validator: (value) => typeof value === "string" && value.trim().length > 0,
+    errorMessage: "is empty",
   },
   {
     field: "subject",
-    validator: (value) => !!value && value.trim().length > 0,
-    errorMessage: "Subject cannot be empty",
+    validator: (value) => typeof value === "string" && value.trim().length > 0,
+    errorMessage: "is empty",
   },
   {
     field: "message",
-    validator: (value) => !!value && value.trim().length > 0,
-    errorMessage: "Message cannot be empty",
+    validator: (value) => typeof value === "string" && value.trim().length > 0,
+    errorMessage: "is empty",
   },
   // Add other fields and validations as needed
 ];
@@ -32,17 +32,28 @@ export const validationRules: ValidationRule[] = [
  * Edit `validationRules` in utils/index.ts to match the fields in your form.
  * @see {@link validationRules} - The array of validation rules in utils/index.ts.
  * @param {Record<string, string | undefined> | undefined} payload - The payload to validate.
- * @returns {boolean} Returns true if the payload passes all validation rules, false otherwise.
+ * @returns {{isValid: boolean, errorMessages: Record<string, string>}} - Returns an object with `isValid` indicating if the payload passes all validation rules, and `errorMessages` providing details about each failed validation.
  */
-export const validatePayload = (
+export const isValid = (
   payload: Record<string, string | undefined> | undefined
-): boolean => {
+): { isValid: boolean; errorMessages: Record<string, string> } => {
+  const errorMessages: Record<string, string> = {};
+
   if (!payload) {
-    return false; // or handle it as you see fit
+    return {
+      isValid: false,
+      errorMessages: { payload: "is empty" },
+    };
   }
-  return validationRules.every(({ field, validator }) =>
-    validator(payload[field])
-  );
+
+  validationRules.forEach(({ field, validator, errorMessage }) => {
+    if (!validator(payload[field])) {
+      errorMessages[field] = errorMessage;
+    }
+  });
+
+  const isValid = Object.keys(errorMessages).length === 0;
+  return { isValid, errorMessages };
 };
 
 /**

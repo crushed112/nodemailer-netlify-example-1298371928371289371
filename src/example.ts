@@ -1,14 +1,9 @@
 import type { Handler } from "@netlify/functions";
 import isEmail from "validator/es/lib/isEmail";
 import type { Options as SMTPTransportOptions } from "nodemailer/lib/smtp-transport";
-import { parseRequestBody, sendEmail, validatePayload } from "./utils";
+import { parseRequestBody, sendEmail, isValid } from "./utils";
 
-// Define Environment Variables Type
 type Env = {
-  // SMTP_HOST: string;
-  // SMTP_PORT: string;
-  // SMTP_USER: string;
-  // SMTP_PASSWORD: string;
   EMAIL: string;
   PASS: string;
   ALLOWED_ORIGINS: string;
@@ -16,14 +11,12 @@ type Env = {
 
 const env: Env = process.env as any;
 
-// Validate environment variables
 if (!env.EMAIL || !env.PASS || !env.ALLOWED_ORIGINS) {
   throw new Error(
     "Environment variables EMAIL, PASS, and ALLOWED_ORIGINS must be set"
   );
 }
 
-// Email Configuration
 const emailConfig = {
   service: "gmail",
   auth: {
@@ -32,7 +25,7 @@ const emailConfig = {
   },
 } satisfies SMTPTransportOptions;
 
-const allowedOrigins = env.ALLOWED_ORIGINS.split(",").filter(Boolean); // Remove any empty strings
+const allowedOrigins = env.ALLOWED_ORIGINS.split(",").filter(Boolean);
 
 export const handler: Handler = async (event) => {
   const origin = event.headers.origin;
@@ -73,14 +66,14 @@ export const handler: Handler = async (event) => {
 
   const payload = parseRequestBody(event.body);
 
-  // Validate all fields exist
-  if (!validatePayload(payload)) {
-    const errorMessage = "Missing or invalid fields";
+  const validation = isValid(payload);
+  if (!validation.isValid) {
+    const errorMessages = validation.errorMessages;
     return isJson
       ? {
           statusCode: 400,
           headers,
-          body: JSON.stringify({ error: errorMessage }),
+          body: JSON.stringify({ errors: errorMessages }),
         }
       : {
           statusCode: 303,
@@ -89,7 +82,6 @@ export const handler: Handler = async (event) => {
         };
   }
 
-  // Validate the email
   if (!isEmail(payload.email)) {
     return isJson
       ? {
