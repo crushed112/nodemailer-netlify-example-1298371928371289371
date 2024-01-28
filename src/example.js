@@ -1,37 +1,30 @@
 import nodemailer from "nodemailer";
 
 const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(",")
+  ? process.env.ALLOWED_ORIGINS.split(",").filter(Boolean)
   : [];
-// const smtpConfig = {
-//   host: process.env.SMTP_HOST,
-//   port: process.env.SMTP_PORT,
-//   auth: {
-//     user: process.env.SMTP_USER,
-//     pass: process.env.SMTP_PASSWORD,
-//   },
-// };
+
 const emailConfig = {
-    service: 'gmail',
-    auth: {
-        user: process.env.EMAIL,
-        pass: process.env.PASS
-    }
-}
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL,
+    pass: process.env.PASS,
+  },
+};
 
 export async function handler(event) {
   const origin = event.headers.origin;
+  const isJson = event.headers["content-type"] === "application/json";
   let headers = {
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Origin": false,
+    "Access-Control-Allow-Origin": allowedOrigins.includes(origin)
+      ? origin
+      : "",
   };
 
   // Preflight request handling (CORS)
   if (event.httpMethod === "OPTIONS") {
-    if (allowedOrigins.includes(origin)) {
-      headers["Access-Control-Allow-Origin"] = origin;
-    }
     return {
       statusCode: 204,
       headers,
@@ -44,40 +37,44 @@ export async function handler(event) {
     return {
       statusCode: 403,
       headers,
-      body: "Access denied. Origin not allowed.",
+      body: isJson
+        ? JSON.stringify({ error: "Access denied. Origin not allowed." })
+        : "",
     };
   }
-
-  // Set CORS headers for allowed origins
-  headers["Access-Control-Allow-Origin"] = origin;
 
   // Handle incorrect HTTP methods
   if (event.httpMethod !== "POST") {
     return {
       statusCode: 405,
       headers,
-      body: "Method Not Allowed",
+      body: isJson ? JSON.stringify({ error: "Method Not Allowed" }) : "",
     };
   }
 
-  // Parse the event(post request) body
-  let params;
-  //   let parsedBody;
+  // Parse the event (post request) body
+  let payload;
   try {
-    params = new URLSearchParams(event.body);
-    // parsedBody = JSON.parse(event.body);
-  } catch (error) {
-    console.error("Error parsing JSON:", error);
-    return {
-      statusCode: 400,
-      headers,
-      body: "Invalid request body",
-    };
+    // Attempt to parse the body as JSON
+    payload = JSON.parse(event.body);
+  } catch (jsonError) {
+    try {
+      // If JSON parsing fails, attempt to parse as URL-encoded form data
+      const params = new URLSearchParams(event.body);
+      payload = Object.fromEntries(params);
+    } catch (formError) {
+      console.error("Error parsing request body:", formError);
+      return {
+        statusCode: 400,
+        headers,
+        body: isJson ? JSON.stringify({ error: "Invalid request body" }) : "",
+      };
+    }
   }
-  const email = params.get("email");
-  const subject = params.get("subject");
-  const message = params.get("message");
-  //   const { email, subject, message } = parsedBody;
+
+  const email = payload.email;
+  const subject = payload.subject;
+  const message = payload.message;
 
   const transporter = nodemailer.createTransport(emailConfig);
   const mailOptions = {
@@ -89,29 +86,29 @@ export async function handler(event) {
 
   try {
     await transporter.sendMail(mailOptions);
-    return {
-      statusCode: 303,
-      headers: {
-        Location: `${origin}/#success`,
-      },
-    };
-    // return {
-    //   statusCode: 200,
-    //   headers,
-    //   body: JSON.stringify({ "Email sent": "true" }),
-    // };
+    return isJson
+      ? {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ message: "Email sent successfully" }),
+        }
+      : {
+          statusCode: 303,
+          headers: { ...headers, Location: `${origin}/#success` },
+          body: "",
+        };
   } catch (error) {
-    console.error("Error sending email: ",error)
-    return {
-      statusCode: 303,
-      headers: {
-        Location: `${origin}/#error`,
-      },
-    };
-    // return {
-    //   statusCode: 500,
-    //   headers,
-    //   body: JSON.stringify({ "Email sent": "false" }),
-    // };
+    console.error("Error sending email: ", error);
+    return isJson
+      ? {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: "Failed to send email" }),
+        }
+      : {
+          statusCode: 303,
+          headers: { ...headers, Location: `${origin}/#error` },
+          body: "",
+        };
   }
 }

@@ -1,20 +1,21 @@
 # Example netlify nodemailer function
 
+[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/oliverspeir/nodemailer-netlify-example)
+
 Two versions here currently: 
 
-1. `/src/example.js` is simplified with no validation and would need to be switched between handling html or json by commenting / uncommenting respective sections 
-2. `/src/example.ts` has validation and is bundled with rollup for optimization 
+1. [example.js](/src/example.js) is simplified with no validation
+2. [example.ts](/src/example.ts) has validation and is bundled with rollup for optimization 
 
 ## Usage
+
+Set form action to / fetch `https://yourdomain.netlify.app/.netlify/functions/example`
 
 Use either a gmail account with app password or an actual SMTP server
 
 This project structure will work if you want to simply clone this template and edit it. However you don't need to use this project structure, you can set up the netlify function however you want. It will probably be easier to just use the example.js 
 
-The TS version can be used by setting the netlify build command to `npm run build`
-
-[example.js](/src/example.js)
-[example.ts](/src/example.ts)
+The TS version can be used by setting the netlify build command to `pnpm run build`
 
 ## Creating App Password
 
