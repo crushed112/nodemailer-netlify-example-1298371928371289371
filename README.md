@@ -2,8 +2,8 @@
 
 Two versions here currently: 
 
-1. /src/example.js is simplified with no validation and would need to be switched between handling html or json by commenting / uncommenting respective sections 
-2. /src/example.ts has validation and can be built with rollup/tsc for optimization 
+1. `/src/example.js` is simplified with no validation and would need to be switched between handling html or json by commenting / uncommenting respective sections 
+2. `/src/example.ts` has validation and is bundled with rollup for optimization 
 
 ## Usage
 
