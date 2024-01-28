@@ -1,6 +1,6 @@
 # Example netlify nodemailer function
 
-[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/oliverspeir/nodemailer-netlify-example&branch=main)
+[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/oliverspeir/nodemailer-netlify-example)
 
 Two versions here currently: 
 
